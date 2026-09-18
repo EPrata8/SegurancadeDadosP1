@@ -26,4 +26,4 @@ Como o projeto utiliza exclusivamente bibliotecas nativas do Python (`os`, `hash
 
 ### 1. Rodar diretamente via código fonte:
 ```bash
-python nome_do_arquivo.py
+python segurancadedadosp1.py
