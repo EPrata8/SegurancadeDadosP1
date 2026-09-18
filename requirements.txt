@@ -1,0 +1,3 @@
+O projeto utiliza apenas bibliotecas nativas do Python (Tkinter, hashlib, hmac, math, os).
+Caso queira registrar a ferramenta do executável
+pyinstaller==6.11.1
