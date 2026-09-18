@@ -23,7 +23,6 @@ def inserir(raiz, valor):
         raiz.esquerda = inserir(raiz.esquerda, valor)
     elif valor > raiz.valor:
         raiz.direita = inserir(raiz.direita, valor)
-    # Se o valor for igual, ele apenas retorna o nó existente, evitando duplicatas e falhas
     return raiz
 
 def montar_arvore(chave):
@@ -267,114 +266,125 @@ class JanelaApp:
         )
         botao_decripto.pack(fill="x", padx=15, pady=(0, 20))
 
+    # --- NOVA FUNÇÃO PARA DESENHAR A ÁRVORE GRAFICAMENTE (ESTILO CÍRCULOS) ---
+    def mostrar_janela_arvore(self, raiz_arvore):
+        janela = tk.Toplevel(self.raiz)
+        janela.title("Visualização Gráfica da Árvore de Criptografia")
+        janela.geometry("750x550")
+        janela.config(bg="#0f172a")
+
+        lbl_titulo = tk.Label(
+            janela, 
+            text="🌳 Diagrama da Árvore Binária de Busca (BST) Gerada", 
+            bg="#0f172a", fg="#34d399", font=("Segoe UI", 12, "bold")
+        )
+        lbl_titulo.pack(pady=10)
+
+        # Canvas para desenhar as linhas e os círculos com os valores
+        canvas = tk.Canvas(janela, bg="#1e293b", highlightthickness=0)
+        canvas.pack(expand=True, fill="both", padx=15, pady=(0, 15))
+
+        def desenhar_no(no, x, y, dx):
+            if no is None:
+                return
+
+            raio = 18
+
+            # Desenha as ramificações (linhas) para os filhos antes de desenhar os círculos
+            if no.esquerda:
+                x_esq = x - dx
+                y_esq = y + 70
+                canvas.create_line(x, y, x_esq, y_esq, fill="#64748b", width=2)
+                desenhar_no(no.esquerda, x_esq, y_esq, dx / 2)
+
+            if no.direita:
+                x_dir = x + dx
+                y_dir = y + 70
+                canvas.create_line(x, y, x_dir, y_dir, fill="#64748b", width=2)
+                desenhar_no(no.direita, x_dir, y_dir, dx / 2)
+
+            # Desenha o círculo do nó (estilo corporativo/moderno)
+            canvas.create_oval(
+                x - raio, y - raio, x + raio, y + raio,
+                fill="#0f172a", outline="#10b981", width=2
+            )
+            # Insere o valor numérico (0 a 255) dentro do círculo
+            canvas.create_text(
+                x, y, text=str(no.valor),
+                fill="#f8fafc", font=("Segoe UI", 9, "bold")
+            )
+
+        # Inicia o desenho a partir da raiz no topo centralizado
+        # Como uma árvore gerada por hash pode ter muitos níveis, limitamos visualmente os 3 primeiros níveis principais para ficar limpo e legível
+        desenhar_no(raiz_arvore, x=375, y=40, dx=160)
+
     def acao_criptografar(self):
-        texto = self.campo_mensagem.get(
-            "1.0",
-            tk.END
-        ).strip()
+        texto = self.campo_mensagem.get("1.0", tk.END).strip()
         senha = self.campo_senha.get()
 
         if not texto:
-            messagebox.showerror(
-                "Atenção",
-                "Escreva alguma mensagem para criptografar."
-            )
+            messagebox.showerror("Atenção", "Escreva alguma mensagem para criptografar.")
             return
 
         if not senha:
-            messagebox.showerror(
-                "Atenção",
-                "Digite uma senha mestre para proteger os dados."
-            )
+            messagebox.showerror("Atenção", "Digite uma senha mestre para proteger os dados.")
             return
 
         destino = filedialog.asksaveasfilename(
             defaultextension=".enc",
-            filetypes=[
-                (
-                    "Arquivo Criptografado",
-                    "*.enc"
-                )
-            ],
+            filetypes=[("Arquivo Criptografado", "*.enc")],
             title="Salvar arquivo no pendrive"
         )
 
         if destino:
             try:
-                pacote = criptografar(
-                    texto.encode("utf-8"),
-                    senha
-                )
-                with open(
-                    destino,
-                    "wb"
-                ) as arquivo:
+                pacote = criptografar(texto.encode("utf-8"), senha)
+                
+                with open(destino, "wb") as arquivo:
                     arquivo.write(pacote)
+                
                 messagebox.showinfo(
                     "Sucesso",
-                    f"Mensagem protegida salva com sucesso em:\n{destino}"
+                    f"Mensagem protegida salva com sucesso em:\n{destino}\n\nA seguir, será aberto o diagrama gráfico da árvore!"
                 )
-                self.campo_mensagem.delete(
-                    "1.0",
-                    tk.END
-                )
-                self.campo_senha.delete(
-                    0,
-                    tk.END
-                )
+                
+                # Reconstrói a árvore do primeiro bloco para desenhar no gráfico
+                salt_gerado = pacote[:TSALT]
+                master = derivar_master(senha, salt_gerado)
+                chave_bloco_0 = list(hashlib.sha256(master + (0).to_bytes(4, "big")).digest())
+                raiz_exemplo = montar_arvore(chave_bloco_0)
+                
+                self.mostrar_janela_arvore(raiz_exemplo)
+
+                self.campo_mensagem.delete("1.0", tk.END)
+                self.campo_senha.delete(0, tk.END)
+
             except Exception as e:
-                messagebox.showerror(
-                    "Erro",
-                    f"Não foi possível salvar: {e}"
-                )
+                messagebox.showerror("Erro", f"Não foi possível salvar: {e}")
 
     def acao_descriptografar(self):
         senha = self.campo_senha.get()
         if not senha:
-            messagebox.showerror(
-                "Atenção",
-                "Digite a senha mestre para abrir o arquivo."
-            )
+            messagebox.showerror("Atenção", "Digite a senha mestre para abrir o arquivo.")
             return
 
         origem = filedialog.askopenfilename(
-            filetypes=[
-                (
-                    "Arquivo Criptografado",
-                    "*.enc"
-                )
-            ],
+            filetypes=[("Arquivo Criptografado", "*.enc")],
             title="Selecionar arquivo no pendrive"
         )
 
         if origem:
             try:
-                with open(
-                    origem,
-                    "rb"
-                ) as arquivo:
+                with open(origem, "rb") as arquivo:
                     pacote = arquivo.read()
-                dados = descriptografar(
-                    pacote,
-                    senha
-                )
-                self.campo_mensagem.delete(
-                    "1.0",
-                    tk.END
-                )
-                self.campo_mensagem.insert(
-                    "1.0",
-                    dados.decode("utf-8")
-                )
-                messagebox.showinfo(
-                    "Sucesso",
-                    "Mensagem aberta e recuperada com sucesso!"
-                )
+                dados = descriptografar(pacote, senha)
+                
+                self.campo_mensagem.delete("1.0", tk.END)
+                self.campo_mensagem.insert("1.0", dados.decode("utf-8"))
+                messagebox.showinfo("Sucesso", "Mensagem aberta e recuperada com sucesso!")
+                
             except Exception as e:
-                messagebox.showerror(
-                    "Erro de Abertura",
-                    f"Falha ao descriptografar:\n{e}"
-                )
+                messagebox.showerror("Erro de Abertura", f"Falha ao descriptografar:\n{e}")
 
 def principal():
     raiz = tk.Tk()
