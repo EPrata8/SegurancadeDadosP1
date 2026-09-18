@@ -11,6 +11,11 @@ Aplicação desenvolvida para garantir a confidencialidade e a integridade no tr
 
 ---
 
+## Gerenciamento do Projeto
+Quadro de tarefas no Trello: https://trello.com/b/rwF0tjEK/sistema-seguro-de-transporte-de-dados-por-%C3%A1rvore-de-criptografia
+
+---
+
 ## Tecnologias Utilizadas
 
 * Python: Linguagem base para toda a lógica de criptografia e interface.
